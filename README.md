@@ -3,3 +3,4 @@
 公開して差し支えのないもの、かつ他の人が見て有用そうなもののみ公開します。
 
 - [えきねっと](eki-net.com.user.js)　主にキーボード操作の改善
+- [駅すぱあと for web](roote.ekispert.net.user.js)　主にフォームUIの改善
