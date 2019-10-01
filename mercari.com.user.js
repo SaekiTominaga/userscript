@@ -1,7 +1,6 @@
 // ==UserScript==
 // @name        Mercari
 // @namespace   https://w0s.jp/
-// @grant       GM_getValue
 // @description 「メルカリ」の商品検索で 販売中 / 売り切れ の切り替え機能を追加する
 // @author      SaekiTominaga
 // @version     1.0.0
