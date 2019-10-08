@@ -3,7 +3,7 @@
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     2.0.0
+// @version     2.1.0
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -205,6 +205,7 @@
 			}
 			@media screen and (max-width: 767px) {
 				.search-container .items-box,
+				.category-brand-list .items-box,
 				.items-box-overflow .items-box {
 					width: auto;
 				}
@@ -212,6 +213,9 @@
 			.search-container .items-box,
 			.search-container .items-box:nth-child(2n+1),
 			.search-container .items-box:nth-child(3n),
+			.category-brand-list .items-box,
+			.category-brand-list .items-box:nth-child(2n+1),
+			.category-brand-list .items-box:nth-child(3n),
 			.items-box-overflow .items-box,
 			.items-box-overflow .items-box:nth-child(2n+1),
 			.items-box-overflow .items-box:nth-child(3n) {
@@ -263,7 +267,7 @@
 		if (document.querySelector(`.items-box:not(.${CLASSNAME_ITEMS_BOX_SOLDOUT})`) !== null && document.querySelector(`.items-box.${CLASSNAME_ITEMS_BOX_SOLDOUT}`) !== null) {
 			const statusCtrlAreaElement = document.createElement('div');
 			statusCtrlAreaElement.className = CLASSNAME_STATUS_ATRA;
-			document.querySelector('.items-box-container h2').insertAdjacentElement('afterend', statusCtrlAreaElement);
+			document.querySelector('.items-box-container h1, .items-box-container h2').insertAdjacentElement('afterend', statusCtrlAreaElement);
 
 			/* 販売中商品の表示切り替え */
 			const statusOnSaleLabelElement = document.createElement('label');
