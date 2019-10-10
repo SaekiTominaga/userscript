@@ -3,7 +3,7 @@
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     2.1.0
+// @version     2.1.1
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -16,9 +16,9 @@
 	 *   disabled="【任意】コントロールが無効であるかどうか">
 	 * </x-input-switch>
 	 *
-	 * @version 1.0.0 2019-10-08 新規作成
+	 * @version 1.0.1 2019-10-08 クラス名スペルミス修正
 	 */
-	class InputSwich extends HTMLElement {
+	class InputSwitch extends HTMLElement {
 		static get observedAttributes() {
 			return ['checked', 'disabled'];
 		}
@@ -169,7 +169,7 @@
 
 	if (document.querySelector('.items-box-content') !== null) {
 		customElements.define(
-			'w0s-input-switch', InputSwich
+			'w0s-input-switch', InputSwitch
 		);
 
 		/* 売り切れ商品の表示切り替えボタンのクラス名 */
@@ -250,6 +250,11 @@
 			const urlParams = (new URL(document.location)).searchParams;
 			statusOnSale = urlParams.get('status_on_sale') === '1';
 			statusSoldOut = urlParams.get('status_trading_sold_out') === '1';
+
+			if (!statusOnSale && !statusSoldOut) {
+				statusOnSale = true;
+				statusSoldOut = true;
+			}
 		}
 
 		/* スタイルを CSS で設定 */
