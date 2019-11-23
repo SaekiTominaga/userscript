@@ -3,7 +3,7 @@
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     2.1.1
+// @version     2.2.0
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -13,61 +13,76 @@
 	 * @example
 	 * <x-input-switch
 	 *   checked="【任意】コントロールがチェックされているかどうか"
-	 *   disabled="【任意】コントロールが無効であるかどうか">
+	 *   disabled="【任意】コントロールが無効であるかどうか"
+	 *   storage-key="【任意】コントロールを切り替えたとき localStorage に保存する">
 	 * </x-input-switch>
 	 *
-	 * @version 1.0.1 2019-10-08 クラス名スペルミス修正
+	 * @version 1.2.0 2019-11-23 formAssociated() 実装
 	 */
 	class InputSwitch extends HTMLElement {
 		static get observedAttributes() {
 			return ['checked', 'disabled'];
 		}
 
+		static get formAssociated() {
+			return true;
+		}
+
 		constructor() {
 			super();
+
+			try {
+				this._myLocalStorage = localStorage;
+			} catch(e) {
+				console.info('Storage access blocked.');
+			}
 
 			this.attachShadow({mode: 'open'}).innerHTML = `
 				<style>
 					:host {
-						--width: 3.6em; /* 外枠の幅 */
-						--height: 1.8em; /* 外枠の高さ */
-						--padding: .2em; /* 外枠と円の間隔 */
-						--color-off: #ccc; /* オフの時の背景色 */
-						--color-on: #29f; /* オンの時の背景色 */
-						--animation-duration: .5s; /* アニメーションに掛かる時間 */
+						--switch-width: 3.6em; /* 外枠の幅 */
+						--switch-height: 1.8em; /* 外枠の高さ */
+						--switch-padding: .2em; /* 外枠と円の間隔 */
+						--switch-color-on: #29f; /* オンの時の背景色 */
+						--switch-color-off: #ccc; /* オフの時の背景色 */
+						--switch-animation-duration: .5s; /* アニメーションに掛かる時間 */
 
 						display: inline-block;
 						position: relative;
-						height: var(--height);
-						width: var(--width);
+						height: var(--switch-height);
+						width: var(--switch-width);
 						vertical-align: top;
 					}
 
 					.slider {
-						border-radius: var(--height);
-						height: var(--height);
-						width: var(--width);
+						--switch-color: var(--switch-color-off);
+
+						border-radius: var(--switch-height);
+						height: var(--switch-height);
+						width: var(--switch-width);
 						position: absolute;
 						top: 0;
 						left: 0;
-						background: var(--color-off);
-						transition: background-color var(--animation-duration);
+						background: var(--switch-color);
+						transition: background-color var(--switch-animation-duration);
 					}
 
 					.slider::before {
+						--switch-circle-diameter: calc(var(--switch-height) - var(--switch-padding) * 2);
+
 						border-radius: 50%;
 						content: "";
-						height: calc(var(--height) - var(--padding) * 2);
-						width: calc(var(--height) - var(--padding) * 2);
+						height: var(--switch-circle-diameter);
+						width: var(--switch-circle-diameter);
 						position: absolute;
-						left: var(--padding);
-						top: var(--padding);
+						left: var(--switch-padding);
+						top: var(--switch-padding);
 						background: #fff;
-						transition: transform var(--animation-duration);
+						transition: transform var(--switch-animation-duration);
 					}
 
 					:host([checked]) .slider {
-						background-color: var(--color-on);
+						--switch-color: var(--switch-color-on);
 					}
 
 					:host([checked]) .slider::before {
@@ -76,39 +91,93 @@
 				</style>
 				<span class="slider"></span>
 			`;
+
+			this._changeEventListener = this._changeEvent.bind(this);
+
+			this.setAttribute('role', 'switch');
 		}
 
 		connectedCallback() {
 			const hostElement = this;
 
-			hostElement.setAttribute('role', 'switch');
-			hostElement.setAttribute('aria-checked', hostElement.checked);
+			const storageKey = this.getAttribute('storage-key');
+			this._storageKey = storageKey;
 
+			if (storageKey !== null && storageKey !== '') {
+				/* ストレージから前回アクセス時のチェック情報を取得する */
+				try {
+					const storageValue = this._myLocalStorage.getItem(storageKey);
+					switch (storageValue) {
+						case 'true':
+							hostElement.checked = true;
+							break;
+						case 'false':
+							hostElement.checked = false;
+							break;
+					}
+				} catch(e) {
+					/* ストレージ無効環境やプライベートブラウジング時 */
+				}
+			}
+
+			hostElement.setAttribute('aria-checked', hostElement.checked);
 			if (!hostElement.disabled) {
 				hostElement.tabIndex = 0;
 			} else {
 				hostElement.setAttribute('aria-disabled', 'true');
 			}
 
-			const change = (hostElement) => {
-				if (!hostElement.disabled) {
-					hostElement.checked = !hostElement.checked;
+			hostElement.addEventListener('click', this._changeEventListener);
+			hostElement.addEventListener('keydown', this._changeEventListener);
+		}
 
+		disconnectedCallback() {
+			const hostElement = this;
+
+			hostElement.removeEventListener('click', this._changeEventListener);
+			hostElement.removeEventListener('keydown', this._changeEventListener);
+		}
+
+		/**
+		 * スイッチの状態を変更する
+		 *
+		 * @param {Event} ev - Event
+		 */
+		_changeEvent(ev) {
+			const hostElement = this;
+
+			const exec = (hostElement) => {
+				if (!hostElement.disabled) {
+					const checked = !hostElement.checked;
+
+					hostElement.checked = checked;
 					hostElement.dispatchEvent(new Event('change'));
+
+					const storageKey = this._storageKey;
+					if (storageKey !== null && storageKey !== '') {
+						/* コントロールのチェック情報をストレージに保管する */
+						try {
+							this._myLocalStorage.setItem(storageKey, checked);
+						} catch(e) {
+							/* ストレージ無効環境やプライベートブラウジング時 */
+						}
+					}
 				}
 			}
 
-			hostElement.addEventListener('click', (ev) => {
-				change(ev.currentTarget);
-			});
-			hostElement.addEventListener('keydown', (ev) => {
-				switch (ev.key) {
-					case ' ':
-						change(ev.currentTarget);
-						ev.preventDefault();
-						break;
-				}
-			});
+			switch (ev.type) {
+				case 'click':
+					exec(hostElement);
+					break;
+				case 'keydown':
+					switch (ev.key) {
+						case ' ':
+							exec(hostElement);
+							ev.preventDefault();
+							break;
+					}
+					break;
+			}
 		}
 
 		attributeChangedCallback(name, oldValue, newValue) {
