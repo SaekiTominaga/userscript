@@ -3,7 +3,7 @@
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     2.2.0
+// @version     2.2.1
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -17,7 +17,7 @@
 	 *   storage-key="【任意】コントロールを切り替えたとき localStorage に保存する">
 	 * </x-input-switch>
 	 *
-	 * @version 1.2.0 2019-11-23 formAssociated() 実装
+	 * @version 1.2.1 2019-11-23 HTML属性の初期設定をコンストラクタから connectedCallback() に移動
 	 */
 	class InputSwitch extends HTMLElement {
 		static get observedAttributes() {
@@ -93,14 +93,14 @@
 			`;
 
 			this._changeEventListener = this._changeEvent.bind(this);
-
-			this.setAttribute('role', 'switch');
 		}
 
 		connectedCallback() {
 			const hostElement = this;
 
-			const storageKey = this.getAttribute('storage-key');
+			hostElement.setAttribute('role', 'switch');
+
+			const storageKey = hostElement.getAttribute('storage-key');
 			this._storageKey = storageKey;
 
 			if (storageKey !== null && storageKey !== '') {
