@@ -3,7 +3,7 @@
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     2.2.1
+// @version     2.3.0
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -14,10 +14,12 @@
 	 * <x-input-switch
 	 *   checked="【任意】コントロールがチェックされているかどうか"
 	 *   disabled="【任意】コントロールが無効であるかどうか"
-	 *   storage-key="【任意】コントロールを切り替えたとき localStorage に保存する">
+	 *   storage-key="【任意】コントロールを切り替えたとき、この値を localStorage のキーとして保存する（値はチェック状態によって true / false のいずれかとなる）"
+	 *   polyfill="【任意】`hidden`  : カスタム要素 v1 未対応ブラウザ（Microsoft Edge 44 等）では関連する <label> を含めて非表示にする
+	 *                     `checkbox`: カスタム要素 v1 未対応ブラウザ（Microsoft Edge 44 等）では代替に <input type=checkbox> を生成する">
 	 * </x-input-switch>
 	 *
-	 * @version 1.2.1 2019-11-23 HTML属性の初期設定をコンストラクタから connectedCallback() に移動
+	 * @version 1.4.0 2020-02-04 初期表示で checked 状態を自動変更するとき、 change イベントを発生させるように変更
 	 */
 	class InputSwitch extends HTMLElement {
 		static get observedAttributes() {
@@ -37,60 +39,72 @@
 				console.info('Storage access blocked.');
 			}
 
-			this.attachShadow({mode: 'open'}).innerHTML = `
-				<style>
-					:host {
-						--switch-width: 3.6em; /* 外枠の幅 */
-						--switch-height: 1.8em; /* 外枠の高さ */
-						--switch-padding: .2em; /* 外枠と円の間隔 */
-						--switch-color-on: #29f; /* オンの時の背景色 */
-						--switch-color-off: #ccc; /* オフの時の背景色 */
-						--switch-animation-duration: .5s; /* アニメーションに掛かる時間 */
+			const cssString = `
+				:host {
+					--width: 3.6em; /* 外枠の幅 */
+					--height: 1.8em; /* 外枠の高さ */
+					--padding: .2em; /* 外枠と円の間隔 */
+					--color-on: #29f; /* オンの時の背景色 */
+					--color-off: #ccc; /* オフの時の背景色 */
+					--animation-duration: .5s; /* アニメーションに掛かる時間 */
 
-						display: inline-block;
-						position: relative;
-						height: var(--switch-height);
-						width: var(--switch-width);
-						vertical-align: top;
-					}
+					display: inline-block;
+					position: relative;
+					height: var(--height);
+					width: var(--width);
+					vertical-align: top;
+				}
 
-					.slider {
-						--switch-color: var(--switch-color-off);
+				.slider {
+					--color: var(--color-off);
 
-						border-radius: var(--switch-height);
-						height: var(--switch-height);
-						width: var(--switch-width);
-						position: absolute;
-						top: 0;
-						left: 0;
-						background: var(--switch-color);
-						transition: background-color var(--switch-animation-duration);
-					}
+					border-radius: var(--height);
+					height: var(--height);
+					width: var(--width);
+					position: absolute;
+					top: 0;
+					left: 0;
+					background: var(--color);
+					transition: background-color var(--animation-duration);
+				}
 
-					.slider::before {
-						--switch-circle-diameter: calc(var(--switch-height) - var(--switch-padding) * 2);
+				.slider::before {
+					--circle-diameter: calc(var(--height) - var(--padding) * 2);
 
-						border-radius: 50%;
-						content: "";
-						height: var(--switch-circle-diameter);
-						width: var(--switch-circle-diameter);
-						position: absolute;
-						left: var(--switch-padding);
-						top: var(--switch-padding);
-						background: #fff;
-						transition: transform var(--switch-animation-duration);
-					}
+					border-radius: 50%;
+					content: "";
+					height: var(--circle-diameter);
+					width: var(--circle-diameter);
+					position: absolute;
+					left: var(--padding);
+					top: var(--padding);
+					background: #fff;
+					transition: transform var(--animation-duration);
+				}
 
-					:host([checked]) .slider {
-						--switch-color: var(--switch-color-on);
-					}
+				:host([checked]) .slider {
+					--color: var(--color-on);
+				}
 
-					:host([checked]) .slider::before {
-						transform: translateX(calc(3.6em - 1.8em)); /* TODO Edge 18 はここにカスタムプロパティを使うと認識されない */
-					}
-				</style>
+				:host([checked]) .slider::before {
+					transform: translateX(calc(3.6em - 1.8em)); /* TODO Edge 18 はここにカスタムプロパティを使うと認識されない */
+				}
+			`;
+
+			const shadow = this.attachShadow({mode: 'open'});
+			shadow.innerHTML = `
 				<span class="slider"></span>
 			`;
+
+			if (shadow.adoptedStyleSheets !== undefined) {
+				const cssStyleSheet = new CSSStyleSheet();
+				cssStyleSheet.replaceSync(cssString);
+
+				shadow.adoptedStyleSheets = [cssStyleSheet];
+			} else {
+				/* adoptedStyleSheets 未対応環境 */
+				shadow.innerHTML += `<style>${cssString}</style>`;
+			}
 
 			this._changeEventListener = this._changeEvent.bind(this);
 		}
@@ -109,10 +123,16 @@
 					const storageValue = this._myLocalStorage.getItem(storageKey);
 					switch (storageValue) {
 						case 'true':
-							hostElement.checked = true;
+							if (!hostElement.checked) {
+								hostElement.checked = true;
+								hostElement.dispatchEvent(new Event('change'));
+							}
 							break;
 						case 'false':
-							hostElement.checked = false;
+							if (hostElement.checked) {
+								hostElement.checked = false;
+								hostElement.dispatchEvent(new Event('change'));
+							}
 							break;
 					}
 				} catch(e) {
@@ -350,6 +370,7 @@
 
 			const statusOnSaleSwitchElement = document.createElement('w0s-input-switch');
 			statusOnSaleSwitchElement.checked = statusOnSale;
+			statusOnSaleSwitchElement.setAttribute('storage-key', 'search-status-on-sale');
 			statusOnSaleSwitchElement.addEventListener('change', (ev) => {
 				const checked = ev.target.checked;
 				for (const itemsBoxOnSaleElement of document.querySelectorAll(`.items-box:not(.${CLASSNAME_ITEMS_BOX_SOLDOUT})`)) {
@@ -365,6 +386,7 @@
 
 			const statusSoldOutSwitchElement = document.createElement('w0s-input-switch');
 			statusSoldOutSwitchElement.checked = statusSoldOut;
+			statusSoldOutSwitchElement.setAttribute('storage-key', 'search-status-sold-out');
 			statusSoldOutSwitchElement.addEventListener('change', (ev) => {
 				const checked = ev.target.checked;
 				for (const itemsBoxSoldoutElement of document.querySelectorAll(`.items-box.${CLASSNAME_ITEMS_BOX_SOLDOUT}`)) {
