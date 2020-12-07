@@ -3,7 +3,7 @@
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     2.3.0
+// @version     2.4.0
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -19,7 +19,7 @@
 	 *                     `checkbox`: カスタム要素 v1 未対応ブラウザ（Microsoft Edge 44 等）では代替に <input type=checkbox> を生成する">
 	 * </x-input-switch>
 	 *
-	 * @version 1.4.0 2020-02-04 初期表示で checked 状態を自動変更するとき、 change イベントを発生させるように変更
+	 * @version 1.4.0
 	 */
 	class InputSwitch extends HTMLElement {
 		static get observedAttributes() {
@@ -256,7 +256,7 @@
 		}
 	}
 
-	if (document.querySelector('.items-box-content') !== null) {
+	if (document.querySelector(':is(.search-container, .user-details) .items-box-content, .category-brand-list.items-box-content') !== null) {
 		customElements.define(
 			'w0s-input-switch', InputSwitch
 		);
@@ -270,45 +270,42 @@
 		/* CSS */
 		const CSS = `
 			/* float: left を display: grid に変換 */
-			.items-box-content {
+			:is(.search-container, .user-details) .items-box-content,
+			.category-brand-list.items-box-content {
 				display: grid;
+				grid-gap: 10px;
 				grid-template-columns: repeat(auto-fit, minmax(100px ,1fr));
-				grid-gap: 4px;
 			}
 			@media screen and (min-width: 768px) {
-				.items-box-content {
+				.search-container .items-box-content {
 					grid-template-columns: repeat(auto-fit, minmax(160px ,1fr));
-					grid-gap: 20px;
 				}
 
 				.user-details .items-box-content {
 					grid-template-columns: repeat(auto-fit, minmax(220px ,1fr));
 				}
-			}
-			.items-box[hidden] {
-				display: none !important;
-			}
-			.items-box,
-			.items-box-overflow .items-box {
-				float: none;
-			}
-			@media screen and (max-width: 767px) {
-				.search-container .items-box,
-				.category-brand-list .items-box,
-				.items-box-overflow .items-box {
-					width: auto;
+
+				.category-brand-list.items-box-content {
+					grid-template-columns: repeat(auto-fit, minmax(188px ,1fr));
 				}
 			}
-			.search-container .items-box,
-			.search-container .items-box:nth-child(2n+1),
-			.search-container .items-box:nth-child(3n),
-			.category-brand-list .items-box,
-			.category-brand-list .items-box:nth-child(2n+1),
-			.category-brand-list .items-box:nth-child(3n),
-			.items-box-overflow .items-box,
-			.items-box-overflow .items-box:nth-child(2n+1),
-			.items-box-overflow .items-box:nth-child(3n) {
+
+			:is(.search-container, .category-brand-list, .user-details) .items-box {
+				float: none;
+				width: auto;
+				max-width: none;
+			}
+			:is(.search-container, .category-brand-list, .user-details) .items-box[hidden] {
+				display: none !important;
+			}
+
+			:is(.search-container, .category-brand-list, .user-details) :is(.items-box, .items-box:nth-child(2n+1), .items-box:nth-child(3n)) {
 				margin: 0;
+			}
+
+			:is(.search-container, .category-brand-list, .user-details) .items-box-photo {
+				width: auto;
+				height: auto;
 			}
 
 			/* 「販売中」「売り切れ」表示切り替え機能 */
@@ -324,6 +321,7 @@
 					margin-right: 0;
 				}
 			}
+
 			.${CLASSNAME_STATUS_ATRA} label {
 				display: flex;
 				align-items: center;
@@ -334,7 +332,7 @@
 		let statusOnSale = true;
 		let statusSoldOut = true;
 
-		/* 検索画面はURLパラメーターによって「販売中」「売り切れ」の表示初期値を変える */
+		/* 検索画面は URL パラメーターによって「販売中」「売り切れ」の表示初期値を変える */
 		if (document.querySelector('.search-container') !== null) {
 			const urlParams = (new URL(document.location)).searchParams;
 			statusOnSale = urlParams.get('status_on_sale') === '1';
