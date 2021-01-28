@@ -2,7 +2,7 @@
 
 公開して差し支えのないもの、かつ他の人が見て有用そうなもののみ公開します。
 
-- [Amazon.co.jp](amazon_co.jp.user.js)　リンク改善
+- [Amazon.co.jp](dist/amazon_co_jp.user.js)　リンク改善
 - [えきねっと](dist/eki-net_com.user.js)　主にキーボード操作の改善
 - [メルカリ](dist/mercari_com.user.js)　商品検索で 販売中 / 売り切れ の切り替え機能を追加
 - [mozaic.fm](dist/mozaic_fm.user.js)　Web podcast を Cookie 無効環境でも聴けるようにする
