@@ -16,7 +16,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 // @namespace   https://w0s.jp/
 // @description 「メルカリ」の商品検索で「販売中」「売り切れ」の表示切り替え機能を追加する
 // @author      SaekiTominaga
-// @version     3.0.1
+// @version     3.1.0
 // @match       https://www.mercari.com/*
 // ==/UserScript==
 (() => {
@@ -454,6 +454,13 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
                 changeSoldOut(statusSoldOutSwitchElement.checked);
             }, { passive: true });
             statusSoldOutLabelElement.insertAdjacentElement('afterbegin', statusSoldOutSwitchElement);
+        }
+    }
+    /* 画像の遅延読み込みを取り止め */
+    for (const imageLazyloadElement of document.querySelectorAll('img.lazyload')) {
+        if (imageLazyloadElement.dataset.src !== undefined) {
+            imageLazyloadElement.classList.remove('lazyload');
+            imageLazyloadElement.src = imageLazyloadElement.dataset.src;
         }
     }
 })();
