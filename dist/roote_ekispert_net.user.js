@@ -4,7 +4,7 @@
 // @grant       GM_getValue
 // @description 「駅すぱあと for web」のキーボード操作を改善する
 // @author      SaekiTominaga
-// @version     1.0.1
+// @version     1.0.2
 // @match       https://roote.ekispert.net/*
 // ==/UserScript==
 (() => {
@@ -135,13 +135,13 @@
     if (optionAreaElement !== null) {
         console.info('【検索画面】交通手段の初期設定');
         const courseSetting = supportGMgetValue ? window.GM_getValue('COURSE_SETTING', COURSE_SETTING) : COURSE_SETTING;
-        for (const courseName of courseSetting) {
+        for (const [courseName, checked] of Object.entries(courseSetting)) {
             const courseCheckboxElement = document.getElementById(courseName);
             if (courseCheckboxElement === null) {
                 console.error(`Element: #${courseName} can not found.`);
                 continue;
             }
-            courseCheckboxElement.checked = courseSetting[courseName];
+            courseCheckboxElement.checked = checked;
         }
     }
     /* 【経路検索画面】初期フォーカスを設定 */

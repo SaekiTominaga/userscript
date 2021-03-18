@@ -4,14 +4,27 @@
 // @grant       GM_getValue
 // @description 「駅すぱあと for web」のキーボード操作を改善する
 // @author      SaekiTominaga
-// @version     1.0.1
+// @version     1.0.2
 // @match       https://roote.ekispert.net/*
 // ==/UserScript==
+
+interface CourseSetting {
+	sexp: boolean /* 新幹線 */;
+	express: boolean /* 有料特急 */;
+	local: boolean /* 路線バス */;
+	highway: boolean /* 高速バス */;
+	plane: boolean /* 飛行機 */;
+	connect: boolean /* 連絡バス */;
+	liner: boolean /* ライナー */;
+	sleep: boolean /* 寝台列車 */;
+	ship: boolean /* 海路 */;
+}
+
 (() => {
 	'use strict';
 
 	/* 交通手段の初期設定（ユーザースクリプトの設定画面からこの定数名と同名のキーを設定することでカスタマイズ可能です） */
-	const COURSE_SETTING = {
+	const COURSE_SETTING: CourseSetting = {
 		sexp: true /* 新幹線 */,
 		express: true /* 有料特急 */,
 		local: true /* 路線バス */,
@@ -144,15 +157,15 @@
 	if (optionAreaElement !== null) {
 		console.info('【検索画面】交通手段の初期設定');
 
-		const courseSetting = supportGMgetValue ? window.GM_getValue('COURSE_SETTING', COURSE_SETTING) : COURSE_SETTING;
-		for (const courseName of courseSetting) {
+		const courseSetting: CourseSetting = supportGMgetValue ? window.GM_getValue('COURSE_SETTING', COURSE_SETTING) : COURSE_SETTING;
+		for (const [courseName, checked] of Object.entries(courseSetting)) {
 			const courseCheckboxElement = <HTMLInputElement | null>document.getElementById(courseName);
 			if (courseCheckboxElement === null) {
 				console.error(`Element: #${courseName} can not found.`);
 				continue;
 			}
 
-			courseCheckboxElement.checked = courseSetting[courseName];
+			courseCheckboxElement.checked = <boolean>checked;
 		}
 	}
 
